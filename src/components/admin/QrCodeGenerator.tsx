@@ -10,7 +10,17 @@ function RecipeQrCard({ recipe, siteUrl }: { recipe: Recipe; siteUrl: string }) 
   const [regenerated, setRegenerated] = useState(false);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [version, setVersion] = useState(0);
-  const url = `${siteUrl}/recipes/${recipe.slug}`;
+  // Prefer the browser's actual origin over the server-supplied siteUrl —
+  // this admin tool is only ever used live in-browser, so this keeps QR codes
+  // correct even if NEXT_PUBLIC_SITE_URL is unset/stale (e.g. preview deploys,
+  // or before a host migration updates it).
+  const [origin, setOrigin] = useState(siteUrl);
+  useEffect(() => {
+    // window.location isn't available during SSR, so this can only be read post-mount.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOrigin(window.location.origin);
+  }, []);
+  const url = `${origin}/recipes/${recipe.slug}`;
 
   useEffect(() => {
     if (!canvasRef.current || isRegenerating) return;
