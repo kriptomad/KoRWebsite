@@ -18,7 +18,11 @@ export async function POST(request: Request) {
   }
 
   if (!verifyPasscode(parsed.data.passcode)) {
-    return NextResponse.json({ error: "Invalid passcode." }, { status: 401 });
+    // TEMP DIAGNOSTIC (remove once Netlify passcode mismatch is resolved) — surfaces only
+    // lengths/presence in the response, never the actual secret values.
+    const expected = process.env.ADMIN_PASSCODE;
+    const debug = `set=${Boolean(expected)} expectedLen=${expected?.length ?? 0} candidateLen=${parsed.data.passcode.length}`;
+    return NextResponse.json({ error: `Invalid passcode. [debug: ${debug}]` }, { status: 401 });
   }
 
   // Demo auth: a valid passcode signs in as Owner (see session.ts header comment).

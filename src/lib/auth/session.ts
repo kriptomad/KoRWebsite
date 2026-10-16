@@ -50,11 +50,6 @@ export function verifySessionToken(token: string | undefined): { roleName: strin
 
 export function verifyPasscode(candidate: string): boolean {
   const expected = process.env.ADMIN_PASSCODE;
-  // TEMP DIAGNOSTIC (remove once Netlify passcode mismatch is resolved) — logs
-  // only lengths/presence, never the actual secret values, to Netlify function logs.
-  console.log(
-    `[auth] ADMIN_PASSCODE set=${Boolean(expected)} expectedLen=${expected?.length ?? 0} candidateLen=${candidate.length}`,
-  );
   if (!expected) return false;
   const a = Buffer.from(candidate);
   const b = Buffer.from(expected);
