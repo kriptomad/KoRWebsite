@@ -1,5 +1,6 @@
 import { mkdir, readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
+import os from "os";
 import path from "path";
 import type { AuditLogEntry, Comment, HeroSlide, Post, Product, Recipe, Role } from "@/types";
 import { heroSlidesSeed, postsSeed, productsSeed, recipesSeed } from "@/lib/data/seed";
@@ -23,7 +24,16 @@ export interface StoreShape {
   auditLog: AuditLogEntry[];
 }
 
-const STORE_DIR = path.join(process.cwd(), ".data");
+// Serverless hosts (Netlify Functions, Vercel) ship a read-only deployment
+// bundle — only the OS temp dir is writable there — so fall back to it when
+// one of those platforms is detected, while keeping the nicer project-local
+// .data folder for local dev. Note: the temp dir does not persist across cold
+// starts/instances; configure Supabase (src/lib/db/supabase.ts) for real
+// production durability.
+const isServerless = Boolean(process.env.NETLIFY || process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
+const STORE_DIR = isServerless
+  ? path.join(os.tmpdir(), "koc-digital-core-data")
+  : path.join(process.cwd(), ".data");
 const STORE_PATH = path.join(STORE_DIR, "db.json");
 
 function defaultStore(): StoreShape {

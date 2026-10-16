@@ -24,11 +24,8 @@ export default function AdminLoginPage() {
       router.push("/admin");
       router.refresh();
     } else {
-      const rawText = await response.text();
-      // TEMP DIAGNOSTIC (remove once Netlify login issue is resolved) — shows the
-      // raw HTTP status/body so we can tell network/server errors apart from a
-      // real passcode mismatch.
-      setError(`[debug] status=${response.status} len=${passcode.length} body=${rawText.slice(0, 200)}`);
+      const data = await response.json().catch(() => ({}));
+      setError(data.error ?? "Invalid passcode.");
       setSubmitting(false);
     }
   }
