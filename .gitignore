@@ -20,6 +20,11 @@
 # production
 /build
 
+# local demo persistence (see src/lib/db/file-store.ts) and uploaded media
+/.data/
+/public/uploads/*
+!/public/uploads/.gitkeep
+
 # misc
 .DS_Store
 *.pem
