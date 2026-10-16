@@ -27,6 +27,7 @@ export function StaffUserManager({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [createdNotice, setCreatedNotice] = useState<string | null>(null);
+  const [resetTargetId, setResetTargetId] = useState<string | null>(null);
 
   function roleName(id: string): string {
     return roles.find((r) => r.id === id)?.name ?? "Unknown role";
@@ -89,21 +90,46 @@ export function StaffUserManager({
               <p className="truncate font-semibold text-brand-deep">{user.displayName}</p>
               <p className="truncate text-sm text-brand-ink/60">
                 {user.email} · {roleName(user.roleId)}
+                {user.mustChangePasscode ? (
+                  <span className="ml-2 rounded bg-brand-gold/20 px-1.5 py-0.5 text-xs font-semibold text-brand-gold-dark">
+                    Passcode reset pending
+                  </span>
+                ) : null}
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleRevoke(user.id, user.displayName)}
-              className="shrink-0 rounded border border-red-700/30 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50"
-            >
-              Revoke access
-            </button>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => setResetTargetId(resetTargetId === user.id ? null : user.id)}
+                className="rounded border border-brand-deep/30 px-3 py-1 text-sm font-semibold text-brand-deep hover:bg-brand-deep/10"
+              >
+                {resetTargetId === user.id ? "Cancel" : "Reset passcode"}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRevoke(user.id, user.displayName)}
+                className="rounded border border-red-700/30 px-3 py-1 text-sm font-semibold text-red-700 hover:bg-red-50"
+              >
+                Revoke access
+              </button>
+            </div>
           </li>
         ))}
         {staffUsers.length === 0 ? (
           <p className="text-sm text-brand-ink/60">No staff accounts yet — add the first one below.</p>
         ) : null}
       </ul>
+
+      {resetTargetId ? (
+        <ResetPasscodeForm
+          staffUser={staffUsers.find((u) => u.id === resetTargetId)!}
+          onUpdated={(updated) => {
+            setStaffUsers((prev) => prev.map((u) => (u.id === updated.id ? updated : u)));
+            router.refresh();
+          }}
+          onCancel={() => setResetTargetId(null)}
+        />
+      ) : null}
 
       <form
         onSubmit={handleSubmit}
@@ -188,5 +214,116 @@ export function StaffUserManager({
         </button>
       </form>
     </div>
+  );
+}
+
+function ResetPasscodeForm({
+  staffUser,
+  onUpdated,
+  onCancel,
+}: {
+  staffUser: StaffUser;
+  onUpdated: (updated: StaffUser) => void;
+  onCancel: () => void;
+}) {
+  const [newPasscode, setNewPasscode] = useState("");
+  const [showPasscode, setShowPasscode] = useState(false);
+  const [requireChange, setRequireChange] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [issuedNotice, setIssuedNotice] = useState<string | null>(null);
+
+  async function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    setError(null);
+    if (newPasscode.length < 8) {
+      setError("Passcode must be at least 8 characters.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await fetch(`/api/admin/staff-users/${staffUser.id}/passcode`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPasscode, requireChange }),
+      });
+      const payload = await response.json();
+      if (!response.ok) {
+        setError(payload.error ?? "Could not reset the passcode.");
+        return;
+      }
+      setIssuedNotice(
+        requireChange
+          ? `Temporary passcode for ${staffUser.email} (share securely — they'll be asked to set their own on next login): ${newPasscode}`
+          : `New passcode set for ${staffUser.email}.`,
+      );
+      onUpdated(payload.staffUser);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-4 rounded-lg border border-brand-deep/15 bg-brand-cream/40 p-6 shadow-sm"
+    >
+      <h2 className="font-semibold text-brand-deep">Reset passcode for {staffUser.displayName}</h2>
+
+      <label className="block text-sm">
+        <span className="font-semibold text-brand-deep">New passcode * (min. 8 characters)</span>
+        <div className="mt-1 flex gap-2">
+          <input
+            type={showPasscode ? "text" : "password"}
+            value={newPasscode}
+            onChange={(e) => setNewPasscode(e.target.value)}
+            className="min-w-0 flex-1 rounded border border-brand-deep/20 px-3 py-1.5"
+            required
+          />
+          <button
+            type="button"
+            onClick={() => setShowPasscode((v) => !v)}
+            className="shrink-0 rounded border border-brand-deep/30 px-2 text-xs font-semibold text-brand-deep hover:bg-brand-deep/10"
+          >
+            {showPasscode ? "Hide" : "Show"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setNewPasscode(generatePasscode());
+              setShowPasscode(true);
+            }}
+            className="shrink-0 rounded border border-brand-deep/30 px-2 text-xs font-semibold text-brand-deep hover:bg-brand-deep/10"
+          >
+            Generate
+          </button>
+        </div>
+      </label>
+
+      <label className="flex items-center gap-2 text-sm text-brand-ink">
+        <input type="checkbox" checked={requireChange} onChange={(e) => setRequireChange(e.target.checked)} />
+        Treat as temporary — require them to set their own passcode on next login
+      </label>
+
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      {issuedNotice ? <p className="rounded bg-white p-3 text-sm text-brand-ink">{issuedNotice}</p> : null}
+
+      <div className="flex gap-2">
+        <button
+          type="submit"
+          disabled={saving}
+          className="rounded-full bg-brand-deep px-5 py-2 text-sm font-semibold text-brand-cream hover:bg-brand-deep-dark disabled:opacity-60"
+        >
+          {saving ? "Saving…" : "Reset passcode"}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-full border border-brand-deep/30 px-5 py-2 text-sm font-semibold text-brand-deep hover:bg-brand-deep/10"
+        >
+          Close
+        </button>
+      </div>
+    </form>
   );
 }

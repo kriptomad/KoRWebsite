@@ -144,6 +144,9 @@ export interface StaffUser {
   email: string;
   displayName: string;
   roleId: string;
+  /** True after the Owner resets this account with a temporary passcode;
+   * the staff member must set their own before using the admin area. */
+  mustChangePasscode: boolean;
   createdAt: string; // ISO date
 }
 

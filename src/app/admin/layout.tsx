@@ -13,6 +13,7 @@ const adminLinks = [
   { href: "/admin/audit", label: "Audit Log" },
   { href: "/admin/privacy", label: "GDPR Erasure" },
   { href: "/admin/settings", label: "Site Settings" },
+  { href: "/admin/change-passcode", label: "Change Passcode" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

@@ -10,18 +10,33 @@ interface StaffUserRow {
   display_name: string;
   role_id: string;
   passcode_hash: string;
+  must_change_passcode: boolean;
   created_at: string;
 }
 
 function rowToStaffUser(row: StaffUserRow): StaffUser {
-  return { id: row.id, email: row.email, displayName: row.display_name, roleId: row.role_id, createdAt: row.created_at };
+  return {
+    id: row.id,
+    email: row.email,
+    displayName: row.display_name,
+    roleId: row.role_id,
+    mustChangePasscode: row.must_change_passcode,
+    createdAt: row.created_at,
+  };
 }
 
 function toPublicUser(user: StaffUser & { passcodeHash: string }): StaffUser {
-  return { id: user.id, email: user.email, displayName: user.displayName, roleId: user.roleId, createdAt: user.createdAt };
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    roleId: user.roleId,
+    mustChangePasscode: user.mustChangePasscode,
+    createdAt: user.createdAt,
+  };
 }
 
-const PUBLIC_COLUMNS = "id,email,display_name,role_id,created_at";
+const PUBLIC_COLUMNS = "id,email,display_name,role_id,must_change_passcode,created_at";
 
 export async function listStaffUsers(): Promise<StaffUser[]> {
   if (isSupabaseConfigured && supabaseAdmin) {
@@ -90,12 +105,95 @@ export async function createStaffUser(input: {
     displayName,
     roleId: input.roleId,
     passcodeHash,
+    mustChangePasscode: false,
     createdAt: new Date().toISOString(),
   };
   await writeStore((store) => {
     store.staffUsers.push(user);
   });
   return toPublicUser(user);
+}
+
+/** Owner-only: sets a staff member's passcode directly, or hands them a
+ * temporary one via `requireChange` so they must set their own on next login. */
+export async function resetStaffPasscode(
+  id: string,
+  newPasscode: string,
+  options: { requireChange: boolean },
+): Promise<StaffUser> {
+  if (newPasscode.length < 8) {
+    throw new Error("Passcode must be at least 8 characters.");
+  }
+  const passcodeHash = hashPasscode(newPasscode);
+
+  if (isSupabaseConfigured && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("staff_users")
+      .update({ passcode_hash: passcodeHash, must_change_passcode: options.requireChange })
+      .eq("id", id)
+      .select(PUBLIC_COLUMNS)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) throw new Error("Staff user not found.");
+    return rowToStaffUser(data as StaffUserRow);
+  }
+
+  let updated: StaffUser | undefined;
+  await writeStore((store) => {
+    const target = store.staffUsers.find((u) => u.id === id);
+    if (!target) return;
+    target.passcodeHash = passcodeHash;
+    target.mustChangePasscode = options.requireChange;
+    updated = toPublicUser(target);
+  });
+  if (!updated) throw new Error("Staff user not found.");
+  return updated;
+}
+
+/** Self-service passcode change: requires the caller to already know their
+ * current passcode. Always clears mustChangePasscode on success. */
+export async function changeOwnPasscode(
+  id: string,
+  currentPasscode: string,
+  newPasscode: string,
+): Promise<StaffUser | null> {
+  if (newPasscode.length < 8) {
+    throw new Error("Passcode must be at least 8 characters.");
+  }
+
+  if (isSupabaseConfigured && supabaseAdmin) {
+    const { data, error } = await supabaseAdmin
+      .from("staff_users")
+      .select(`${PUBLIC_COLUMNS},passcode_hash`)
+      .eq("id", id)
+      .maybeSingle();
+    if (error || !data) return null;
+    const row = data as StaffUserRow;
+    if (!verifyPasscodeHash(currentPasscode, row.passcode_hash)) return null;
+
+    const { data: updated, error: updateError } = await supabaseAdmin
+      .from("staff_users")
+      .update({ passcode_hash: hashPasscode(newPasscode), must_change_passcode: false })
+      .eq("id", id)
+      .select(PUBLIC_COLUMNS)
+      .single();
+    if (updateError) throw updateError;
+    return rowToStaffUser(updated as StaffUserRow);
+  }
+
+  const { staffUsers } = await readStore();
+  const existing = staffUsers.find((u) => u.id === id);
+  if (!existing || !verifyPasscodeHash(currentPasscode, existing.passcodeHash)) return null;
+
+  let updated: StaffUser | undefined;
+  await writeStore((store) => {
+    const target = store.staffUsers.find((u) => u.id === id);
+    if (!target) return;
+    target.passcodeHash = hashPasscode(newPasscode);
+    target.mustChangePasscode = false;
+    updated = toPublicUser(target);
+  });
+  return updated ?? null;
 }
 
 export async function deleteStaffUser(id: string): Promise<void> {

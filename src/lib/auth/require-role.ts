@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentRole } from "@/lib/auth/current-role";
+import { getCurrentRole, getCurrentStaffUser } from "@/lib/auth/current-role";
 import { hasPermission } from "@/lib/rbac";
 import type { Permission, Role } from "@/types";
 
@@ -7,6 +7,8 @@ import type { Permission, Role } from "@/types";
 export async function requirePermission(permission: Permission): Promise<Role> {
   const role = await getCurrentRole();
   if (!role) redirect("/admin/login");
+  const staffUser = await getCurrentStaffUser();
+  if (staffUser?.mustChangePasscode) redirect("/admin/change-passcode");
   if (!hasPermission(role, permission)) redirect("/admin");
   return role;
 }
@@ -14,5 +16,7 @@ export async function requirePermission(permission: Permission): Promise<Role> {
 export async function requireAnyRole(): Promise<Role> {
   const role = await getCurrentRole();
   if (!role) redirect("/admin/login");
+  const staffUser = await getCurrentStaffUser();
+  if (staffUser?.mustChangePasscode) redirect("/admin/change-passcode");
   return role;
 }

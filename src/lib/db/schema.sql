@@ -25,8 +25,14 @@ create table if not exists staff_users (
   -- the Owner revoke one person's access (DELETE the row) without affecting
   -- anyone else, unlike the single shared ADMIN_PASSCODE.
   passcode_hash text not null,
+  -- Set true when the Owner resets this account with a temporary passcode;
+  -- forces the staff member to set their own passcode on next login.
+  must_change_passcode boolean not null default false,
   created_at timestamptz not null default now()
 );
+
+-- Idempotent migration for databases created before must_change_passcode existed.
+alter table if exists staff_users add column if not exists must_change_passcode boolean not null default false;
 
 create table if not exists site_settings (
   id text primary key,
