@@ -8,15 +8,16 @@ function RecipeQrCard({ recipe, siteUrl }: { recipe: Recipe; siteUrl: string }) 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [copied, setCopied] = useState(false);
   const [regenerated, setRegenerated] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
   const [version, setVersion] = useState(0);
   const url = `${siteUrl}/recipes/${recipe.slug}`;
 
   useEffect(() => {
-    if (!canvasRef.current) return;
+    if (!canvasRef.current || isRegenerating) return;
     QRCode.toCanvas(canvasRef.current, url, { width: 220, margin: 2 }).catch(() => {});
-    // `version` has no effect on the QR content — it only forces this effect
-    // to re-run so the "Regenerate" button can force a fresh redraw.
-  }, [url, version]);
+    // `version` has no effect on the QR content (same link = same pixels) — it only
+    // forces this effect to re-run so the "Regenerate" button visibly redraws the canvas.
+  }, [url, version, isRegenerating]);
 
   function handleDownload() {
     const canvas = canvasRef.current;
@@ -34,17 +35,31 @@ function RecipeQrCard({ recipe, siteUrl }: { recipe: Recipe; siteUrl: string }) 
   }
 
   function handleRegenerate() {
-    if (!confirm(`Regenerate the QR code for "${recipe.title}"? Any previously printed or downloaded copies will still work, but you'll need to redownload the new image.`)) {
+    if (!confirm(`Regenerate the QR code for "${recipe.title}"? The image encodes the same link, so it will look identical, but it will be redrawn fresh — useful if the current one looks corrupted or blank.`)) {
       return;
     }
-    setVersion((v) => v + 1);
-    setRegenerated(true);
-    setTimeout(() => setRegenerated(false), 1500);
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setIsRegenerating(true);
+    setTimeout(() => {
+      setVersion((v) => v + 1);
+      setIsRegenerating(false);
+      setRegenerated(true);
+      setTimeout(() => setRegenerated(false), 1500);
+    }, 400);
   }
 
   return (
     <li className="flex flex-col items-center gap-3 rounded-lg border border-brand-deep/15 bg-white p-4 text-center shadow-sm">
-      <canvas ref={canvasRef} className="rounded" />
+      <div className="relative flex h-[220px] w-[220px] items-center justify-center">
+        <canvas ref={canvasRef} className="rounded" />
+        {isRegenerating && (
+          <span className="absolute inset-0 flex items-center justify-center rounded bg-white/80 text-xs font-semibold text-brand-deep">
+            Regenerating…
+          </span>
+        )}
+      </div>
       <div className="min-w-0">
         <p className="font-semibold text-brand-deep">{recipe.title}</p>
         <p className="truncate text-xs text-brand-ink/60">{url}</p>
@@ -67,11 +82,12 @@ function RecipeQrCard({ recipe, siteUrl }: { recipe: Recipe; siteUrl: string }) 
         <button
           type="button"
           onClick={handleRegenerate}
+          disabled={isRegenerating}
           title="Redraw this QR code"
           aria-label={`Regenerate QR code for ${recipe.title}`}
-          className="rounded border border-brand-deep/30 px-3 py-1 font-semibold text-brand-deep hover:bg-brand-deep/10"
+          className="rounded border border-brand-deep/30 px-3 py-1 font-semibold text-brand-deep hover:bg-brand-deep/10 disabled:opacity-60"
         >
-          {regenerated ? "Regenerated!" : "↻ Regenerate"}
+          {regenerated ? "Regenerated!" : isRegenerating ? "Regenerating…" : "↻ Regenerate"}
         </button>
       </div>
     </li>
