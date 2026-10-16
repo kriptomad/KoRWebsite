@@ -36,12 +36,15 @@ async function sbList<T>(key: EntityKey): Promise<T[]> {
  *  array order (= display/carousel order) in sync via the `position` column. */
 async function sbReplaceAll<T extends { _id: string }>(key: EntityKey, items: T[]): Promise<void> {
   const table = SB_TABLE[key];
+  // hero_slides has no `slug` column (unlike products/recipes/posts) — including
+  // it in the insert payload for that table trips an "undefined column" error.
+  const hasSlugColumn = key !== "heroSlides";
   const { error: delError } = await supabaseAdmin!.from(table).delete().not("id", "is", null);
   if (delError) throw delError;
   if (items.length === 0) return;
   const rows = items.map((item, index) => ({
     id: item._id,
-    slug: (item as unknown as { slug?: string }).slug ?? null,
+    ...(hasSlugColumn ? { slug: (item as unknown as { slug?: string }).slug ?? null } : {}),
     position: index,
     data: item,
   }));
