@@ -9,8 +9,10 @@ const adminLinks = [
   { href: "/admin/content/posts", label: "Journal" },
   { href: "/admin/moderation", label: "Moderation" },
   { href: "/admin/roles", label: "Roles & Permissions" },
+  { href: "/admin/users", label: "Staff Accounts" },
   { href: "/admin/audit", label: "Audit Log" },
   { href: "/admin/privacy", label: "GDPR Erasure" },
+  { href: "/admin/settings", label: "Site Settings" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

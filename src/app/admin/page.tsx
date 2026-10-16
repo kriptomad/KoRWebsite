@@ -10,8 +10,10 @@ const TILES = [
   { href: "/admin/content/posts", title: "Editorial Journal", permission: "posts.manage" as const, description: "Publish market reports, seasonal updates, and chef interviews." },
   { href: "/admin/moderation", title: "Community Moderation Queue", permission: "comments.moderate" as const, description: "Approve, hide, or purge comments submitted on recipes and news." },
   { href: "/admin/roles", title: "Access Control Matrix", permission: "roles.manage" as const, description: "Create roles and assign granular permissions to staff." },
+  { href: "/admin/users", title: "Staff Accounts", permission: "roles.manage" as const, description: "Create individual staff logins and revoke access when someone leaves." },
   { href: "/admin/audit", title: "Audit Log", permission: "audit.view" as const, description: "Review every administrative action with timestamp, role and IP." },
   { href: "/admin/privacy", title: "GDPR Erasure", permission: "gdpr.manage" as const, description: "Process Article 17 right-to-erasure requests." },
+  { href: "/admin/settings", title: "Site Settings", permission: "roles.manage" as const, description: "Change the header logo and other brand-wide settings." },
 ];
 
 export default async function AdminDashboardPage() {

@@ -62,6 +62,11 @@ export async function getRoleByName(name: string): Promise<Role | undefined> {
   return roles.find((role) => role.name.toLowerCase() === name.toLowerCase());
 }
 
+export async function getRoleById(id: string): Promise<Role | undefined> {
+  const roles = await listRoles();
+  return roles.find((role) => role.id === id);
+}
+
 function rowToRole(row: {
   id: string;
   name: string;

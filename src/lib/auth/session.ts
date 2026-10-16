@@ -19,14 +19,14 @@ function sign(payload: string): string {
   return createHmac("sha256", getSecret()).update(payload).digest("base64url");
 }
 
-export function createSessionToken(roleName: string): string {
-  const payload = JSON.stringify({ roleName, expiresAt: Date.now() + SESSION_TTL_MS });
+export function createSessionToken(roleName: string, staffUserId?: string): string {
+  const payload = JSON.stringify({ roleName, staffUserId, expiresAt: Date.now() + SESSION_TTL_MS });
   const encoded = Buffer.from(payload).toString("base64url");
   const signature = sign(encoded);
   return `${encoded}.${signature}`;
 }
 
-export function verifySessionToken(token: string | undefined): { roleName: string } | null {
+export function verifySessionToken(token: string | undefined): { roleName: string; staffUserId?: string } | null {
   if (!token) return null;
   const [encoded, signature] = token.split(".");
   if (!encoded || !signature) return null;
@@ -39,10 +39,11 @@ export function verifySessionToken(token: string | undefined): { roleName: strin
   try {
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as {
       roleName: string;
+      staffUserId?: string;
       expiresAt: number;
     };
     if (payload.expiresAt < Date.now()) return null;
-    return { roleName: payload.roleName };
+    return { roleName: payload.roleName, staffUserId: payload.staffUserId };
   } catch {
     return null;
   }

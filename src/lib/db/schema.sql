@@ -21,7 +21,17 @@ create table if not exists staff_users (
   email text not null unique,
   display_name text not null,
   role_id uuid not null references roles(id),
+  -- Salted scrypt hash ("salt:hash", hex) — see src/lib/auth/password.ts. Lets
+  -- the Owner revoke one person's access (DELETE the row) without affecting
+  -- anyone else, unlike the single shared ADMIN_PASSCODE.
+  passcode_hash text not null,
   created_at timestamptz not null default now()
+);
+
+create table if not exists site_settings (
+  id text primary key,
+  data jsonb not null,
+  updated_at timestamptz not null default now()
 );
 
 create table if not exists comments (

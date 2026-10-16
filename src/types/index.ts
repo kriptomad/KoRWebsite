@@ -136,6 +136,17 @@ export interface Role {
   permissions: Permission[];
 }
 
+/** An individual staff login — distinct from Role, so the Owner can revoke a
+ * single person's access (e.g. when they leave) without affecting anyone
+ * else sharing that role. */
+export interface StaffUser {
+  id: string;
+  email: string;
+  displayName: string;
+  roleId: string;
+  createdAt: string; // ISO date
+}
+
 export interface AuditLogEntry {
   id: string;
   actorRole: string;

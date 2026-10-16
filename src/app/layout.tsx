@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/layout/SiteHeader";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { siteConfig } from "@/lib/site-config";
 import { buildMetadata } from "@/lib/metadata";
+import { getSiteSettings } from "@/lib/db/site-settings";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,7 +26,9 @@ export const metadata = {
   metadataBase: new URL(siteConfig.url),
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const { logoUrl } = await getSiteSettings();
+
   return (
     <html
       lang="en"
@@ -33,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <SkipLink />
-        <SiteHeader />
+        <SiteHeader logoUrl={logoUrl} />
         <main id="main-content" className="flex-1">
           {children}
         </main>

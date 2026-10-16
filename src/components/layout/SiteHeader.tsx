@@ -11,7 +11,7 @@ const navLinks = [
   { href: "/news", label: "News" },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ logoUrl }: { logoUrl?: string | null }) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (
@@ -22,8 +22,7 @@ export function SiteHeader() {
           onClick={() => setIsMenuOpen(false)}
           className="flex items-center gap-3 text-lg font-semibold tracking-wide transition-opacity hover:opacity-80"
         >
-          {/* Placeholder brand mark — swap public/images/logo.svg for the real logo file when available */}
-          <Image src="/images/logo.svg" alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-full" />
+          <Image src={logoUrl || "/images/logo.svg"} alt="" width={36} height={36} className="h-9 w-9 shrink-0 rounded-full object-cover" unoptimized={Boolean(logoUrl)} />
           {siteConfig.shortName}
         </Link>
         <ul className="hidden gap-2 text-sm font-medium sm:flex">

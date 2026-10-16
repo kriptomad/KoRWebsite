@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
   const [passcode, setPasscode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -17,7 +18,7 @@ export default function AdminLoginPage() {
     const response = await fetch("/api/admin/session", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ passcode }),
+      body: JSON.stringify({ email: email.trim() || undefined, passcode }),
     });
 
     if (response.ok) {
@@ -37,7 +38,18 @@ export default function AdminLoginPage() {
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-4">
         <label className="flex flex-col gap-1 text-sm">
-          <span>Admin passcode</span>
+          <span>Staff email (leave blank to use the Owner master passcode)</span>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="rounded border border-brand-deep/20 px-3 py-2"
+            autoComplete="username"
+          />
+        </label>
+
+        <label className="flex flex-col gap-1 text-sm">
+          <span>Passcode</span>
           <input
             type="password"
             required

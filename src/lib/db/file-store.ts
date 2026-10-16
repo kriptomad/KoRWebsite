@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile } from "fs/promises";
 import { existsSync } from "fs";
 import os from "os";
 import path from "path";
-import type { AuditLogEntry, Comment, HeroSlide, Post, Product, Recipe, Role } from "@/types";
+import type { AuditLogEntry, Comment, HeroSlide, Post, Product, Recipe, Role, StaffUser } from "@/types";
 import { heroSlidesSeed, postsSeed, productsSeed, recipesSeed } from "@/lib/data/seed";
 import { DEFAULT_ROLES } from "@/lib/rbac";
 
@@ -14,6 +14,14 @@ import { DEFAULT_ROLES } from "@/lib/rbac";
 // production durability/concurrency, configure Supabase instead (see
 // src/lib/db/supabase.ts) which every store module prefers when available.
 
+/** Staff user record as persisted in the file-store — includes the salted
+ * passcode hash, which is never sent to the client (see src/lib/db/staff-users.ts). */
+export type StoredStaffUser = StaffUser & { passcodeHash: string };
+
+export interface SiteSettings {
+  logoUrl: string | null;
+}
+
 export interface StoreShape {
   heroSlides: HeroSlide[];
   products: Product[];
@@ -22,6 +30,8 @@ export interface StoreShape {
   comments: Comment[];
   roles: Role[];
   auditLog: AuditLogEntry[];
+  staffUsers: StoredStaffUser[];
+  siteSettings: SiteSettings;
 }
 
 // Serverless hosts (Netlify Functions, Vercel) ship a read-only deployment
@@ -45,6 +55,19 @@ function defaultStore(): StoreShape {
     comments: [],
     roles: DEFAULT_ROLES.map((role) => ({ ...role, permissions: [...role.permissions] })),
     auditLog: [],
+    staffUsers: [],
+    siteSettings: { logoUrl: null },
+  };
+}
+
+// Backfills keys that didn't exist in older on-disk files, so upgrading the
+// app doesn't crash on a stale .data/db.json / serverless tmp file.
+function withDefaults(store: Partial<StoreShape>): StoreShape {
+  return {
+    ...defaultStore(),
+    ...store,
+    staffUsers: store.staffUsers ?? [],
+    siteSettings: store.siteSettings ?? { logoUrl: null },
   };
 }
 
@@ -70,7 +93,7 @@ export async function readStore(): Promise<StoreShape> {
   return enqueue(async () => {
     await ensureStoreFile();
     const raw = await readFile(STORE_PATH, "utf8");
-    return JSON.parse(raw) as StoreShape;
+    return withDefaults(JSON.parse(raw) as Partial<StoreShape>);
   });
 }
 
@@ -78,7 +101,7 @@ export async function writeStore(mutate: (store: StoreShape) => void): Promise<S
   return enqueue(async () => {
     await ensureStoreFile();
     const raw = await readFile(STORE_PATH, "utf8");
-    const store = JSON.parse(raw) as StoreShape;
+    const store = withDefaults(JSON.parse(raw) as Partial<StoreShape>);
     mutate(store);
     await writeFile(STORE_PATH, JSON.stringify(store, null, 2), "utf8");
     return store;
