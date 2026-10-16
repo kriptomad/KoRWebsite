@@ -252,17 +252,17 @@ export function RecipeManager({
           <legend className="px-1 text-sm font-semibold text-brand-deep">Ingredients *</legend>
           <div className="space-y-2">
             {draft.ingredients.map((ingredient, index) => (
-              <div key={index} className="flex gap-2">
+              <div key={index} className="flex flex-col gap-2 sm:flex-row">
                 <input
                   value={ingredient.label}
                   onChange={(e) => updateIngredient(index, { label: e.target.value })}
                   placeholder="e.g. 400g Atlantic hake fillets"
-                  className="flex-1 rounded border border-brand-deep/20 px-3 py-1.5 text-sm"
+                  className="min-w-0 flex-1 rounded border border-brand-deep/20 px-3 py-1.5 text-sm"
                 />
                 <select
                   value={ingredient.productSlug ?? ""}
                   onChange={(e) => updateIngredient(index, { productSlug: e.target.value || undefined })}
-                  className="rounded border border-brand-deep/20 px-2 py-1.5 text-sm"
+                  className="min-w-0 rounded border border-brand-deep/20 px-2 py-1.5 text-sm"
                 >
                   <option value="">Link product (optional)</option>
                   {products.map((p) => (

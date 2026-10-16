@@ -5,6 +5,7 @@ const adminLinks = [
   { href: "/admin/content/hero", label: "Hero Carousel" },
   { href: "/admin/content/products", label: "Products" },
   { href: "/admin/content/recipes", label: "Recipes" },
+  { href: "/admin/content/qr-codes", label: "QR Codes" },
   { href: "/admin/content/posts", label: "Journal" },
   { href: "/admin/moderation", label: "Moderation" },
   { href: "/admin/roles", label: "Roles & Permissions" },
