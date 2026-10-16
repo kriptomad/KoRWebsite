@@ -4,6 +4,10 @@
   --background: #fbf8f2;
   --foreground: #1c2524;
   --ease-brand: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Site is light-themed only: component text colors (brand-deep/brand-ink)
+     assume a cream background, so we opt out of OS dark-mode auto-switching
+     to avoid dark-on-dark contrast failures. */
+  color-scheme: light;
 }
 
 /* KOC brand tokens — Modern Emerald / Warm Honey (see FRD section 2).
@@ -27,13 +31,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a4a3f;
-    --foreground: #fbf8f2;
-  }
 }
 
 body {
