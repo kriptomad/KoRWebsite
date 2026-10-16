@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { COOKIE_NAME, SESSION_TTL_MS, createSessionToken, verifyPasscode } from "@/lib/auth/session";
+import { COOKIE_NAME, SESSION_TTL_MS, createSessionToken } from "@/lib/auth/session";
 import { logAuditEvent } from "@/lib/db/audit";
 import { getRoleById } from "@/lib/db/roles";
 import { verifyStaffCredentials } from "@/lib/db/staff-users";
+import { verifyMasterPasscode } from "@/lib/db/site-settings";
 import { isSameOrigin } from "@/lib/security/same-origin";
 
 const loginSchema = z.object({
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
 
   // Legacy master passcode: signs in as Owner. Kept as a recovery path so the
   // Owner is never locked out, even before any staff accounts exist.
-  if (!verifyPasscode(passcode)) {
+  if (!(await verifyMasterPasscode(passcode))) {
     await logAuditEvent({
       actorRole: "public",
       action: "ADMIN_LOGIN_FAILED",

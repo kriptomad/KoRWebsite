@@ -20,6 +20,7 @@ export type StoredStaffUser = StaffUser & { passcodeHash: string };
 
 export interface SiteSettings {
   logoUrl: string | null;
+  masterPasscodeHash: string | null;
 }
 
 export interface StoreShape {
@@ -56,7 +57,7 @@ function defaultStore(): StoreShape {
     roles: DEFAULT_ROLES.map((role) => ({ ...role, permissions: [...role.permissions] })),
     auditLog: [],
     staffUsers: [],
-    siteSettings: { logoUrl: null },
+    siteSettings: { logoUrl: null, masterPasscodeHash: null },
   };
 }
 
@@ -67,7 +68,7 @@ function withDefaults(store: Partial<StoreShape>): StoreShape {
     ...defaultStore(),
     ...store,
     staffUsers: store.staffUsers ?? [],
-    siteSettings: store.siteSettings ?? { logoUrl: null },
+    siteSettings: { logoUrl: null, masterPasscodeHash: null, ...store.siteSettings },
   };
 }
 
